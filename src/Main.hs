@@ -19,22 +19,30 @@ data Item = Item { itemId :: Maybe Int, itemDesc :: String }
 type ItemList = [Item]
 
 instance FromRow Item where
-    fromRow = Item <$> field <*> field
+  fromRow = Item <$> field <*> field
 
 instance ToRow Item where
-    toRow i = [toField $ itemDesc i]
+  toRow i = [toField $ itemDesc i]
+
+instance ToRow Int where
+  toRow i = [toField i]
 
 instance ToJSON Item
 
 instance FromJSON Item
 
-insertChecklist :: Connection -> Item -> IO Item
-insertChecklist conn item = do
-    let insertQuery = "insert into todo (itemDesc) values (?)"
-        keyQuery = "select last_insert_rowid()"
-    execute conn insertQuery item
-    [Only id] <- query conn keyQuery ()
-    return item { itemId = id }
+insertItem :: Connection -> Item -> IO Item
+insertItem conn item = do
+  let insertQuery = "insert into todo (itemDesc) values (?)"
+      keyQuery = "select last_insert_rowid()"
+  execute conn insertQuery item
+  [Only id] <- query conn keyQuery ()
+  return item { itemId = id }
+
+deleteItem :: Connection -> Int -> IO ()
+deleteItem conn id = do
+  let deleteQuery = "delete from todo where itemId = ?"
+  execute conn deleteQuery id
 
 routes :: Connection -> ScottyM ()
 routes conn = do
@@ -44,9 +52,15 @@ routes conn = do
     json items
 
   post "/items" $ do
-          item <- jsonData :: ActionM Item
-          newItem <- liftIO (insertChecklist conn item)
-          json newItem
+    item <- jsonData :: ActionM Item
+    newItem <- liftIO (insertItem conn item)
+    json newItem
+
+  delete "/items/:id" $ do
+    id <- param "id"
+    liftIO (deleteItem conn id)
+    text "del"
+
 
 main :: IO ()
 main = do
