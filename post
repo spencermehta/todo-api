@@ -1,6 +1,7 @@
 curl --header "Content-Type: application/json" \
 	--request POST \
 	--data '{
-		"itemDesc":"todotest"
+        "itemId":0,
+		"itemDesc":"Kill self"
 	}' \
 	http://localhost:3000/items

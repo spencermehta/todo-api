@@ -22,17 +22,18 @@ instance FromRow Item where
     fromRow = Item <$> field <*> field
 
 instance ToRow Item where
-    toRow i = [toField $ itemId i, toField $ itemDesc i]
+    toRow i = [toField $ itemDesc i]
 
 instance ToJSON Item
 
 instance FromJSON Item
 
-
 insertChecklist :: Connection -> Item -> IO Item
 insertChecklist conn item = do
-    let insertQuery = "insert into todo (itemDesc) values (?) returning itemId"
-    [Only id] <- query conn insertQuery item
+    let insertQuery = "insert into todo (itemDesc) values (?)"
+        keyQuery = "select last_insert_rowid()"
+    execute conn insertQuery item
+    [Only id] <- query conn keyQuery ()
     return item { itemId = id }
 
 routes :: Connection -> ScottyM ()
