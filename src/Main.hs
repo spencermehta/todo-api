@@ -11,59 +11,41 @@ import Control.Applicative
 import Control.Monad.IO.Class
 import Database.SQLite.Simple
 import Database.SQLite.Simple.FromRow
+import Database.SQLite.Simple.ToField
 
-data Item = Item { itemDesc :: String }
+data Item = Item { itemId :: Maybe Int, itemDesc :: String }
   deriving (Show, Generic)
 
 type ItemList = [Item]
 
 instance FromRow Item where
-    fromRow = Item <$> field
+    fromRow = Item <$> field <*> field
 
 instance ToRow Item where
-    toRow i = [toField $ itemText i, toField $ finished i, toField $ checklist i]
+    toRow i = [toField $ itemId i, toField $ itemDesc i]
 
 instance ToJSON Item
+
 instance FromJSON Item
 
-withConn :: String -> (Connection -> IO ()) -> IO ()
-withConn dbName action = do
-   conn <- open dbName
-   action conn
-   close conn
 
-addItem :: String -> IO ()
-addItem itemDesc = withConn "todo.db" $
-          \conn -> do
-            execute conn "INSERT INTO todo (itemDesc) VALUES (?)"
-              (Only (itemDesc :: String))
-            r <- query_ conn "SELECT * FROM todo" :: IO [(Int, String)]
-            mapM_ print r
--- addItem :: Item -> IO ()
--- addItem (Item item) = withConn "todo.db" $
---           \conn -> do
---             execute conn "INSERT INTO todo (itemDesc) VALUES (?)"
---               (Only item)
---             r <- query_ conn "SELECT * FROM todo WHERE itemId = 10" :: IO [(Int, String)]
---             mapM_ print r
+insertChecklist :: Connection -> Item -> IO Item
+insertChecklist conn item = do
+    let insertQuery = "insert into todo (itemDesc) values (?) returning itemId"
+    [Only id] <- query conn insertQuery item
+    return item { itemId = id }
 
--- matchesId :: Int -> Item -> Bool
--- matchesId id item = itemId item == id
-
-routes :: ScottyM ()
+routes :: Connection -> ScottyM ()
 routes conn = do
     
   get "/items" $ do
     items <- liftIO (query_ conn "select * from todo" :: IO [Item])
+    json items
 
-  post "/items:item" $ do
-    item <- param "item"
-    liftIO (addItem item)
-    text ("hello !")
-
-  -- post "/items" $ do
-  --   item <- jsonData :: ActionM Item
-  --   addItem item
+  post "/items" $ do
+          item <- jsonData :: ActionM Item
+          newItem <- liftIO (insertChecklist conn item)
+          json newItem
 
 main :: IO ()
 main = do
