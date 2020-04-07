@@ -1,0 +1,6 @@
+curl --header "Content-Type: application/json" \
+	--request POST \
+	--data '{
+		"itemDesc":"todotest"
+	}' \
+	http://localhost:3000/items
