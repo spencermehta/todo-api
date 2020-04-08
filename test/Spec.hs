@@ -19,13 +19,27 @@ main :: IO ()
 
 main = open "todo.db" >>= \conn ->
     hspec $ before_ flushdb $ do
-        describe "Lib.insertItem" $ do
-            it "inserts successfully" $ 
-                insertItem conn (Item (Just 0) "Test Item") `shouldReturn` (Item (Just 1) "Test Item")
+        describe "insert item" $ do
+            it "inserts single successfully" $ 
+                insertItem conn (Item (Just 0) "Test Item") `shouldReturn` (Item (Just 4) "Test Item")
+            -- it "interts multiple successfully" $
+            --     map (\item -> (insertItem conn item) >>= (==) item) items 
+        describe "delete item" $ do 
+            it "deletes single successfully" $
+                deleteItem conn 3 `shouldReturn` [(Item (Just 3) "Test Item 3")]
+            it "deletes non existent" $
+                deleteItem conn 4 `shouldReturn` []
+
+            
+items = [Item (Just 1) "Test Item 1", Item (Just 2) "Test Item 2"]
 
 flushdb = do
     conn <- open "todo.db"
     execute conn "DELETE FROM todo" ()
+    execute conn "INSERT INTO todo values (1, 'Test Item 1')" ()
+    execute conn "INSERT INTO todo values (2, 'Test Item 2')" ()
+    execute conn "INSERT INTO todo values (3, 'Test Item 3')" ()
+
 
 -- -- Simplest SELECT
 -- testSimpleOnePlusOne :: Test
