@@ -1,1 +1,1 @@
-curl -X "DELETE" http://localhost:3000/items/28
+curl -X "DELETE" http://localhost:3000/items/50
