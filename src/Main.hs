@@ -48,10 +48,18 @@ insertItem conn item = do
 -- delete Item from database
 -- takes database connection and Int item id 
 -- deletes record where id matches
-deleteItem :: Connection -> Int -> IO ()
+deleteItem :: Connection -> Int -> IO [Item]
 deleteItem conn id = do
   let deleteQuery = "delete from todo where itemId = ?"
+  items <- selectItem conn id
   execute conn deleteQuery id
+  return items
+
+selectItem :: Connection -> Int -> IO [Item]
+selectItem conn id = do
+  let selectQuery = "select * from todo where itemId = ?"
+  r <- query conn selectQuery id
+  return r
 
 -- endpoints
 -- takes database connection
@@ -80,8 +88,8 @@ routes conn = do
   -- returns string 'del' to confirm deletion
   delete "/items/:id" $ do
     id <- param "id"
-    liftIO (deleteItem conn id)
-    text "del"
+    items <- liftIO (deleteItem conn id)
+    json items
 
 
 main :: IO ()
